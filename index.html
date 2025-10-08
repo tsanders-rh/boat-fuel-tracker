@@ -609,6 +609,7 @@
 
         let currentUser = null;
         let fuelUps = [];
+        let isAdmin = false;
 
         // Authentication Functions
         function switchAuthTab(tab) {
@@ -686,6 +687,30 @@
             }
         }
 
+        // Check if user is admin
+        async function checkAdminStatus(user) {
+            if (!user) {
+                isAdmin = false;
+                return;
+            }
+
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                isAdmin = userDoc.exists && userDoc.data().isAdmin === true;
+            } catch (error) {
+                console.error('Error checking admin status:', error);
+                isAdmin = false;
+            }
+        }
+
+        // Update UI based on admin status
+        function updateAdminUI() {
+            const exportSection = document.querySelector('.export-section');
+            if (exportSection) {
+                exportSection.style.display = isAdmin ? 'block' : 'none';
+            }
+        }
+
         // Authentication State Observer
         auth.onAuthStateChanged(async (user) => {
             currentUser = user;
@@ -705,14 +730,21 @@
                 const avatar = document.getElementById('userAvatar');
                 avatar.textContent = (user.displayName || user.email)[0].toUpperCase();
 
+                // Check admin status
+                await checkAdminStatus(user);
+
                 // Load user's fuel-ups from Firestore
                 await loadFuelUps();
+
+                // Update UI based on admin status
+                updateAdminUI();
             } else {
                 // User is signed out
                 authContainer.classList.remove('hidden');
                 mainContent.style.display = 'none';
                 userInfo.classList.add('hidden');
                 fuelUps = [];
+                isAdmin = false;
             }
         });
 
@@ -876,6 +908,11 @@
         }
 
         function exportToCSV() {
+            if (!isAdmin) {
+                alert('Only administrators can export data.');
+                return;
+            }
+
             if (fuelUps.length === 0) {
                 alert('No data to export!');
                 return;
@@ -907,6 +944,11 @@
         }
 
         async function clearAllData() {
+            if (!isAdmin) {
+                alert('Only administrators can clear all data.');
+                return;
+            }
+
             if (confirm('Are you sure you want to delete ALL fuel-up records? This cannot be undone!')) {
                 if (confirm('Really delete everything? This is your last chance!')) {
                     if (!currentUser) return;

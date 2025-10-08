@@ -66,8 +66,11 @@ Follow these steps to configure Firebase for your Boat Fuel Tracker application.
    service cloud.firestore {
      match /databases/{database}/documents {
        match /users/{userId} {
-         // Allow users to read and write only their own data
-         allow read, write: if request.auth != null && request.auth.uid == userId;
+         // Allow users to read their own user document
+         // Allow any authenticated user to read (to check admin status)
+         allow read: if request.auth != null;
+         // Only allow users to write their own document
+         allow write: if request.auth != null && request.auth.uid == userId;
 
          match /fuelUps/{fuelUpId} {
            // Allow users to read and write only their own fuel-up records
@@ -88,7 +91,27 @@ Follow these steps to configure Firebase for your Boat Fuel Tracker application.
    - Example: `tsanders-rh.github.io`
 4. Click "Add domain"
 
-## Step 8: Test Your Application
+## Step 8: Set Up Admin Users
+
+To grant admin privileges to specific users:
+
+1. In Firebase Console, go to **Build** → **Firestore Database**
+2. Navigate to the **Data** tab
+3. After a user signs up, you'll see their user document under `users/{userId}`
+4. Click on the user document you want to make an admin
+5. Click **"Add field"**:
+   - Field name: `isAdmin`
+   - Field type: `boolean`
+   - Value: `true`
+6. Click **Save**
+
+**Important Notes:**
+- Admin users can export data to CSV
+- Admin users can clear all data
+- Non-admin users will not see these buttons
+- You must manually set `isAdmin: true` in Firestore for each admin user
+
+## Step 9: Test Your Application
 
 1. Commit and push your changes to GitHub:
    ```bash
@@ -136,12 +159,31 @@ If you prefer Firebase Hosting over GitHub Pages:
    - Set up automatic builds: No
 4. Deploy: `firebase deploy`
 
+## Admin User Management
+
+### How to Make a User an Administrator
+
+1. User must first sign up and log in to the application
+2. Go to Firebase Console → Firestore Database → Data tab
+3. Find the user under `users/{userId}` (you can identify them by their email or UID)
+4. Add a boolean field `isAdmin` set to `true`
+5. The user must log out and log back in for changes to take effect
+
+### Admin Privileges
+
+Administrators have access to:
+- **Export to CSV**: Export all fuel-up records to a CSV file
+- **Clear All Data**: Delete all fuel-up records from the database
+
+Non-admin users will not see these buttons in the UI.
+
 ## Next Steps
 
 - **Data Migration**: If you have existing data in localStorage, users can export it as CSV from the old version and manually re-import
 - **Email Verification**: Consider adding email verification for better security
 - **Password Reset**: Implement password reset functionality using `auth.sendPasswordResetEmail()`
 - **Profile Management**: Add user profile editing features
+- **Admin Dashboard**: Create a dedicated admin panel for user management
 
 ## Support
 
