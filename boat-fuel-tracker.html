@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Track your boat fuel consumption and expenses">
+    <meta name="theme-color" content="#1e3c72">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fuel Tracker">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%231e3c72' width='192' height='192'/%3E%3Ctext x='96' y='130' font-size='100' text-anchor='middle' fill='white'%3E⛵%3C/text%3E%3C/svg%3E">
+    <title>Boat Fuel Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .form-section h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .records-section {
+            margin-top: 30px;
+        }
+
+        .records-section h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .records-table thead {
+            background: #1e3c72;
+            color: white;
+        }
+
+        .records-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+
+        .records-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .records-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+
+        .no-records {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-style: italic;
+        }
+
+        .export-section {
+            margin-top: 20px;
+            text-align: right;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .records-table {
+                font-size: 0.9em;
+            }
+
+            .records-table th,
+            .records-table td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⛵ Boat Fuel Tracker</h1>
+            <p>Track your fuel consumption and expenses</p>
+        </header>
+
+        <div class="content">
+            <!-- Statistics Section -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Fill-Ups</h3>
+                    <div class="value" id="totalFillups">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Gallons</h3>
+                    <div class="value" id="totalGallons">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Spent</h3>
+                    <div class="value" id="totalSpent">$0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg Price/Gallon</h3>
+                    <div class="value" id="avgPrice">$0</div>
+                </div>
+            </div>
+
+            <!-- Add Fuel-Up Form -->
+            <div class="form-section">
+                <h2>Add Fuel-Up</h2>
+                <form id="fuelForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="date">Date *</label>
+                            <input type="date" id="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="gallons">Gallons *</label>
+                            <input type="number" id="gallons" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="pricePerGallon">Price per Gallon *</label>
+                            <input type="number" id="pricePerGallon" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="engineHours">Engine Hours</label>
+                            <input type="number" id="engineHours" step="0.1" min="0">
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="location">Location</label>
+                            <input type="text" id="location" placeholder="Marina or gas station name">
+                        </div>
+                        <div class="form-group">
+                            <label for="notes">Notes</label>
+                            <textarea id="notes" placeholder="Any additional notes..."></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn">Add Fuel-Up</button>
+                </form>
+            </div>
+
+            <!-- Records Section -->
+            <div class="records-section">
+                <h2>Fuel-Up History</h2>
+                <div id="recordsContainer">
+                    <p class="no-records">No fuel-ups recorded yet. Add your first one above!</p>
+                </div>
+                <div class="export-section">
+                    <button class="btn btn-secondary" onclick="exportToCSV()">Export to CSV</button>
+                    <button class="btn btn-secondary" onclick="clearAllData()">Clear All Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize data from localStorage
+        let fuelUps = JSON.parse(localStorage.getItem('fuelUps')) || [];
+
+        // Set today's date as default
+        document.getElementById('date').valueAsDate = new Date();
+
+        // Form submission
+        document.getElementById('fuelForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const date = document.getElementById('date').value;
+            const gallons = parseFloat(document.getElementById('gallons').value);
+            const pricePerGallon = parseFloat(document.getElementById('pricePerGallon').value);
+            const engineHours = document.getElementById('engineHours').value;
+            const location = document.getElementById('location').value;
+            const notes = document.getElementById('notes').value;
+
+            const fuelUp = {
+                id: Date.now(),
+                date: date,
+                gallons: gallons,
+                pricePerGallon: pricePerGallon,
+                totalCost: gallons * pricePerGallon,
+                engineHours: engineHours || null,
+                location: location || '',
+                notes: notes || ''
+            };
+
+            fuelUps.push(fuelUp);
+            saveFuelUps();
+            renderFuelUps();
+            updateStatistics();
+
+            // Reset form
+            this.reset();
+            document.getElementById('date').valueAsDate = new Date();
+        });
+
+        function saveFuelUps() {
+            localStorage.setItem('fuelUps', JSON.stringify(fuelUps));
+        }
+
+        function renderFuelUps() {
+            const container = document.getElementById('recordsContainer');
+
+            if (fuelUps.length === 0) {
+                container.innerHTML = '<p class="no-records">No fuel-ups recorded yet. Add your first one above!</p>';
+                return;
+            }
+
+            // Sort by date (most recent first)
+            const sortedFuelUps = [...fuelUps].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            let html = `
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Gallons</th>
+                            <th>Price/Gal</th>
+                            <th>Total Cost</th>
+                            <th>Engine Hours</th>
+                            <th>Location</th>
+                            <th>Notes</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            sortedFuelUps.forEach(fuelUp => {
+                html += `
+                    <tr>
+                        <td>${new Date(fuelUp.date).toLocaleDateString()}</td>
+                        <td>${fuelUp.gallons.toFixed(2)}</td>
+                        <td>$${fuelUp.pricePerGallon.toFixed(2)}</td>
+                        <td>$${fuelUp.totalCost.toFixed(2)}</td>
+                        <td>${fuelUp.engineHours || '-'}</td>
+                        <td>${fuelUp.location || '-'}</td>
+                        <td>${fuelUp.notes || '-'}</td>
+                        <td><button class="delete-btn" onclick="deleteFuelUp(${fuelUp.id})">Delete</button></td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function updateStatistics() {
+            const totalFillups = fuelUps.length;
+            const totalGallons = fuelUps.reduce((sum, fu) => sum + fu.gallons, 0);
+            const totalSpent = fuelUps.reduce((sum, fu) => sum + fu.totalCost, 0);
+            const avgPrice = totalGallons > 0 ? totalSpent / totalGallons : 0;
+
+            document.getElementById('totalFillups').textContent = totalFillups;
+            document.getElementById('totalGallons').textContent = totalGallons.toFixed(2);
+            document.getElementById('totalSpent').textContent = '$' + totalSpent.toFixed(2);
+            document.getElementById('avgPrice').textContent = '$' + avgPrice.toFixed(2);
+        }
+
+        function deleteFuelUp(id) {
+            if (confirm('Are you sure you want to delete this fuel-up record?')) {
+                fuelUps = fuelUps.filter(fu => fu.id !== id);
+                saveFuelUps();
+                renderFuelUps();
+                updateStatistics();
+            }
+        }
+
+        function exportToCSV() {
+            if (fuelUps.length === 0) {
+                alert('No data to export!');
+                return;
+            }
+
+            const headers = ['Date', 'Gallons', 'Price per Gallon', 'Total Cost', 'Engine Hours', 'Location', 'Notes'];
+            const rows = fuelUps.map(fu => [
+                fu.date,
+                fu.gallons,
+                fu.pricePerGallon,
+                fu.totalCost.toFixed(2),
+                fu.engineHours || '',
+                fu.location,
+                fu.notes
+            ]);
+
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csv += row.map(field => `"${field}"`).join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `boat-fuel-tracker-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to delete ALL fuel-up records? This cannot be undone!')) {
+                if (confirm('Really delete everything? This is your last chance!')) {
+                    fuelUps = [];
+                    saveFuelUps();
+                    renderFuelUps();
+                    updateStatistics();
+                    alert('All data has been cleared.');
+                }
+            }
+        }
+
+        // Register service worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered:', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed:', err);
+                    });
+            });
+        }
+
+        // Initial render
+        renderFuelUps();
+        updateStatistics();
+    </script>
+</body>
+</html>
