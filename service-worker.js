@@ -1,8 +1,8 @@
-const CACHE_NAME = 'boat-fuel-tracker-v2';
+const CACHE_NAME = 'boat-fuel-tracker-v3';
 const urlsToCache = [
-  '/boat-fuel-tracker/',
-  '/boat-fuel-tracker/index.html',
-  '/boat-fuel-tracker/manifest.json'
+  './',
+  './index.html',
+  './manifest.json'
 ];
 
 // Install service worker and cache resources

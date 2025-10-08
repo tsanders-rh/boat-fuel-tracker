@@ -2,7 +2,7 @@
   "name": "Boat Fuel Tracker",
   "short_name": "Fuel Tracker",
   "description": "Track your boat fuel consumption and expenses",
-  "start_url": "/boat-fuel-tracker/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#1e3c72",
