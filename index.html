@@ -11,6 +11,11 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%231e3c72' width='192' height='192'/%3E%3Ctext x='96' y='130' font-size='100' text-anchor='middle' fill='white'%3E⛵%3C/text%3E%3C/svg%3E">
     <title>Boat Fuel Tracker</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         * {
             margin: 0;
@@ -235,6 +240,178 @@
             background: #5a6268;
         }
 
+        /* Authentication styles */
+        .auth-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .auth-box {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-box h2 {
+            color: #1e3c72;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .auth-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .google-btn {
+            width: 100%;
+            background: white;
+            color: #333;
+            border: 2px solid #ddd;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+
+        .google-btn:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            color: #999;
+            position: relative;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: #ddd;
+        }
+
+        .divider::before {
+            left: 0;
+        }
+
+        .divider::after {
+            right: 0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #1e3c72;
+        }
+
+        .user-details {
+            flex: 1;
+            color: white;
+        }
+
+        .user-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .user-email {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
         @media (max-width: 768px) {
             .stats-grid {
                 grid-template-columns: 1fr;
@@ -256,13 +433,93 @@
     </style>
 </head>
 <body>
+    <!-- Authentication Modal -->
+    <div id="authContainer" class="auth-container hidden">
+        <div class="auth-box">
+            <h2>Welcome to Boat Fuel Tracker</h2>
+
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+            </div>
+
+            <div id="authError" class="error-message hidden"></div>
+
+            <!-- Login Form -->
+            <div id="loginForm" class="auth-form active">
+                <button class="google-btn" onclick="signInWithGoogle()">
+                    <svg width="18" height="18" viewBox="0 0 18 18">
+                        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"></path>
+                        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"></path>
+                        <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707 0-.593.102-1.17.282-1.709V4.958H.957C.347 6.173 0 7.548 0 9c0 1.452.348 2.827.957 4.042l3.007-2.335z"></path>
+                        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"></path>
+                    </svg>
+                    Continue with Google
+                </button>
+
+                <div class="divider">or</div>
+
+                <form onsubmit="loginWithEmail(event)">
+                    <div class="form-group">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Login</button>
+                </form>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupForm" class="auth-form">
+                <button class="google-btn" onclick="signInWithGoogle()">
+                    <svg width="18" height="18" viewBox="0 0 18 18">
+                        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"></path>
+                        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"></path>
+                        <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707 0-.593.102-1.17.282-1.709V4.958H.957C.347 6.173 0 7.548 0 9c0 1.452.348 2.827.957 4.042l3.007-2.335z"></path>
+                        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"></path>
+                    </svg>
+                    Sign up with Google
+                </button>
+
+                <div class="divider">or</div>
+
+                <form onsubmit="signUpWithEmail(event)">
+                    <div class="form-group">
+                        <label for="signupName">Name</label>
+                        <input type="text" id="signupName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupEmail">Email</label>
+                        <input type="email" id="signupEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signupPassword">Password</label>
+                        <input type="password" id="signupPassword" required minlength="6">
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Sign Up</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <header>
             <h1>⛵ Boat Fuel Tracker</h1>
             <p>Track your fuel consumption and expenses</p>
+            <div id="userInfo" class="user-info hidden">
+                <div class="user-avatar" id="userAvatar"></div>
+                <div class="user-details">
+                    <div class="user-name" id="userName"></div>
+                    <div class="user-email" id="userEmail"></div>
+                </div>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
         </header>
 
-        <div class="content">
+        <div class="content" id="mainContent">
             <!-- Statistics Section -->
             <div class="stats-grid">
                 <div class="stat-card">
@@ -334,8 +591,182 @@
     </div>
 
     <script>
-        // Initialize data from localStorage
-        let fuelUps = JSON.parse(localStorage.getItem('fuelUps')) || [];
+        // Firebase Configuration
+        // TODO: Replace with your Firebase config from https://console.firebase.google.com/
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let fuelUps = [];
+
+        // Authentication Functions
+        function switchAuthTab(tab) {
+            const loginTab = document.querySelectorAll('.auth-tab')[0];
+            const signupTab = document.querySelectorAll('.auth-tab')[1];
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            const errorDiv = document.getElementById('authError');
+
+            errorDiv.classList.add('hidden');
+
+            if (tab === 'login') {
+                loginTab.classList.add('active');
+                signupTab.classList.remove('active');
+                loginForm.classList.add('active');
+                signupForm.classList.remove('active');
+            } else {
+                signupTab.classList.add('active');
+                loginTab.classList.remove('active');
+                signupForm.classList.add('active');
+                loginForm.classList.remove('active');
+            }
+        }
+
+        function showAuthError(message) {
+            const errorDiv = document.getElementById('authError');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        async function signInWithGoogle() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+            } catch (error) {
+                console.error('Google sign-in error:', error);
+                showAuthError(error.message);
+            }
+        }
+
+        async function loginWithEmail(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                console.error('Login error:', error);
+                showAuthError(error.message);
+            }
+        }
+
+        async function signUpWithEmail(event) {
+            event.preventDefault();
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            try {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                await userCredential.user.updateProfile({ displayName: name });
+            } catch (error) {
+                console.error('Signup error:', error);
+                showAuthError(error.message);
+            }
+        }
+
+        async function logout() {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Error logging out: ' + error.message);
+            }
+        }
+
+        // Authentication State Observer
+        auth.onAuthStateChanged(async (user) => {
+            currentUser = user;
+            const authContainer = document.getElementById('authContainer');
+            const mainContent = document.getElementById('mainContent');
+            const userInfo = document.getElementById('userInfo');
+
+            if (user) {
+                // User is signed in
+                authContainer.classList.add('hidden');
+                mainContent.style.display = 'block';
+                userInfo.classList.remove('hidden');
+
+                // Update user info display
+                document.getElementById('userName').textContent = user.displayName || 'User';
+                document.getElementById('userEmail').textContent = user.email;
+                const avatar = document.getElementById('userAvatar');
+                avatar.textContent = (user.displayName || user.email)[0].toUpperCase();
+
+                // Load user's fuel-ups from Firestore
+                await loadFuelUps();
+            } else {
+                // User is signed out
+                authContainer.classList.remove('hidden');
+                mainContent.style.display = 'none';
+                userInfo.classList.add('hidden');
+                fuelUps = [];
+            }
+        });
+
+        // Firestore Functions
+        async function loadFuelUps() {
+            if (!currentUser) return;
+
+            try {
+                const snapshot = await db.collection('users')
+                    .doc(currentUser.uid)
+                    .collection('fuelUps')
+                    .get();
+
+                fuelUps = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                renderFuelUps();
+                updateStatistics();
+            } catch (error) {
+                console.error('Error loading fuel-ups:', error);
+            }
+        }
+
+        async function saveFuelUp(fuelUp) {
+            if (!currentUser) return;
+
+            try {
+                await db.collection('users')
+                    .doc(currentUser.uid)
+                    .collection('fuelUps')
+                    .doc(fuelUp.id.toString())
+                    .set(fuelUp);
+            } catch (error) {
+                console.error('Error saving fuel-up:', error);
+                alert('Error saving data: ' + error.message);
+            }
+        }
+
+        async function deleteFuelUpFromDB(id) {
+            if (!currentUser) return;
+
+            try {
+                await db.collection('users')
+                    .doc(currentUser.uid)
+                    .collection('fuelUps')
+                    .doc(id.toString())
+                    .delete();
+            } catch (error) {
+                console.error('Error deleting fuel-up:', error);
+                alert('Error deleting data: ' + error.message);
+            }
+        }
 
         // Set today's date as default
         document.getElementById('date').valueAsDate = new Date();
@@ -363,7 +794,7 @@
             };
 
             fuelUps.push(fuelUp);
-            saveFuelUps();
+            saveFuelUp(fuelUp);
             renderFuelUps();
             updateStatistics();
 
@@ -371,10 +802,6 @@
             this.reset();
             document.getElementById('date').valueAsDate = new Date();
         });
-
-        function saveFuelUps() {
-            localStorage.setItem('fuelUps', JSON.stringify(fuelUps));
-        }
 
         function renderFuelUps() {
             const container = document.getElementById('recordsContainer');
@@ -439,10 +866,10 @@
             document.getElementById('avgPrice').textContent = '$' + avgPrice.toFixed(2);
         }
 
-        function deleteFuelUp(id) {
+        async function deleteFuelUp(id) {
             if (confirm('Are you sure you want to delete this fuel-up record?')) {
                 fuelUps = fuelUps.filter(fu => fu.id !== id);
-                saveFuelUps();
+                await deleteFuelUpFromDB(id);
                 renderFuelUps();
                 updateStatistics();
             }
@@ -479,14 +906,31 @@
             window.URL.revokeObjectURL(url);
         }
 
-        function clearAllData() {
+        async function clearAllData() {
             if (confirm('Are you sure you want to delete ALL fuel-up records? This cannot be undone!')) {
                 if (confirm('Really delete everything? This is your last chance!')) {
-                    fuelUps = [];
-                    saveFuelUps();
-                    renderFuelUps();
-                    updateStatistics();
-                    alert('All data has been cleared.');
+                    if (!currentUser) return;
+
+                    try {
+                        const batch = db.batch();
+                        const snapshot = await db.collection('users')
+                            .doc(currentUser.uid)
+                            .collection('fuelUps')
+                            .get();
+
+                        snapshot.docs.forEach(doc => {
+                            batch.delete(doc.ref);
+                        });
+
+                        await batch.commit();
+                        fuelUps = [];
+                        renderFuelUps();
+                        updateStatistics();
+                        alert('All data has been cleared.');
+                    } catch (error) {
+                        console.error('Error clearing data:', error);
+                        alert('Error clearing data: ' + error.message);
+                    }
                 }
             }
         }
@@ -503,10 +947,6 @@
                     });
             });
         }
-
-        // Initial render
-        renderFuelUps();
-        updateStatistics();
     </script>
 </body>
 </html>
