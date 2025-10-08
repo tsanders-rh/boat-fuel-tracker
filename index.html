@@ -672,6 +672,9 @@
             try {
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
                 await userCredential.user.updateProfile({ displayName: name });
+
+                // Create user document in Firestore
+                await createUserDocument(userCredential.user, name);
             } catch (error) {
                 console.error('Signup error:', error);
                 showAuthError(error.message);
@@ -687,6 +690,26 @@
             }
         }
 
+        // Create user document in Firestore
+        async function createUserDocument(user, displayName) {
+            try {
+                const userRef = db.collection('users').doc(user.uid);
+                const userDoc = await userRef.get();
+
+                // Only create if document doesn't exist
+                if (!userDoc.exists) {
+                    await userRef.set({
+                        email: user.email,
+                        displayName: displayName || user.displayName || '',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        isAdmin: false
+                    });
+                }
+            } catch (error) {
+                console.error('Error creating user document:', error);
+            }
+        }
+
         // Check if user is admin
         async function checkAdminStatus(user) {
             if (!user) {
@@ -696,7 +719,14 @@
 
             try {
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                isAdmin = userDoc.exists && userDoc.data().isAdmin === true;
+
+                // Create user document if it doesn't exist (for existing Google users)
+                if (!userDoc.exists) {
+                    await createUserDocument(user, user.displayName);
+                    isAdmin = false;
+                } else {
+                    isAdmin = userDoc.data().isAdmin === true;
+                }
             } catch (error) {
                 console.error('Error checking admin status:', error);
                 isAdmin = false;
